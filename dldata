@@ -1,0 +1,4 @@
+#!/bin/bash
+wget https://archive.ics.uci.edu/ml/machine-learning-databases/diabetes/diabetes-data.tar.Z
+tar xzf diabetes-data.tar.Z
+rm diabetes-data.tar.Z
