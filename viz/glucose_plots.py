@@ -5,13 +5,15 @@ import itertools
 import datetime
 import matplotlib.dates as pltdate
 
-def blood_glucose_plot(times, bgs):
+def blood_glucose_plot(times, bgs, mode='full', ls=':'):
     """Plot blood glucoes on pretty plot.
     
     Parameters
     ----------
     times : list of datetime objects of observations
     bgs   : list of blood glucose records, in mg/dL
+    mode  : the mode of the plot
+            choose from 'full', 'model_day', and 'model_week'
     """
 
     fig = plt.figure(figsize=(12, 6), )
@@ -19,20 +21,40 @@ def blood_glucose_plot(times, bgs):
     ax.set_frame_on(False)
     
     # Format the time axis.
-    ax.set_xlim((min(times), max(times)))
     ax.get_xaxis().tick_bottom()
-    ax.xaxis.set_major_formatter(pltdate.DateFormatter('%b %d'))
+    timemin, timemax = min(times), max(times)
+    if mode=='full':
+        ax.xaxis.set_major_formatter(pltdate.DateFormatter('%b %d'))
+        xmin, xmax = timemin, timemax
+    elif mode=='model_day':
+        ax.xaxis.set_major_formatter(pltdate.DateFormatter('%H:%M'))
+        # Collapse all data onto single day
+        times, xmin, xmax = maptoday(times)
+    elif mode=='model_week':
+        ax.xaxis.set_major_formatter(pltdate.DateFormatter('%A'))
+        times, xmin, xmax = maptoweek(times)
+
+    timeinds = np.argsort(times)
+    times = times[timeinds]
+    bgs = bgs[timeinds]
+
+
+    ax.set_xlim((xmin, xmax))
     ax.xaxis_date()
     
     # Format the y axis, show typical range.
-    ax.set_ylim((20, 250))
+    ax.set_ylim(bottom=20, top=max(bgs))
     ax.axes.get_yaxis().set_visible(False)
     ax.axhspan(70, 150, alpha=0.1, color = '#FF4775')
     ax.text(-0.01, 70, '70', va='center', ha='right', transform=ax.get_yaxis_transform())
     ax.text(-0.01, 150, '150', va='center', ha='right', transform=ax.get_yaxis_transform())
+
+    ax.set_title('Blood Glucose Records (mg/dL) for {0} to {1}'.format(
+                    timemin.strftime('%b %d'), timemax.strftime('%b %d')),
+                    loc='left')
     
     # Plot the data.
-    ax.plot(times, bgs, linewidth=1.0, color='k', linestyle=':', marker='o', markersize=3.)
+    ax.plot(times, bgs, linewidth=1.0, color='k', linestyle=ls, marker='o', markersize=3.)
     
     # Label statistics.
     labeled_boxplot(ax, bgs, 1., transform=ax.get_yaxis_transform()) 
@@ -122,9 +144,22 @@ def timerange(start, end, step):
         yield date
         date += step
 
+def maptoweek(times): 
+    times = np.array([datetime.datetime(1999, 11, 8, x.hour, x.minute, x.second) +\
+                datetime.timedelta(days=x.weekday()) for x in times])
+    xmin = datetime.datetime(1999, 11, 8, 0, 0, 0)
+    xmax = datetime.datetime(1999, 11, 14, 23, 59, 59)
+    return times, xmin, xmax
 
-
-
+def maptoday(times):
+    times = np.array([datetime.datetime(year=1999, month=12, day=1, 
+                                hour=x.hour, minute=x.minute) 
+                                for x in times])
+    xmin = datetime.datetime(year=1999, month=12, day=1,
+                                hour=0, minute=0)
+    xmax = datetime.datetime(year=1999, month=12, day=1,
+                                hour=23, minute=59, second=59)
+    return times, xmin, xmax
 
 
 
