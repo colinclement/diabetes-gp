@@ -88,9 +88,18 @@ class GPR(object):
 
         return 0.5*grd
 
-    def update_kernel_p(self, p, var=None):
-        self.kernel.p[:] = p.copy()
-        var = var or self.var
-        self.fit(self.y_obs, self.x_obs, var)
+
+    def log_gradmarg(self, pnoise, neg=True):
+        lgmrg = self.logmarg(pnoise)
+        glgmrg = self.grad_logmarg(pnoise)
+        if neg:
+            return (-lgmrg, -glgmrg)
+        else:
+            return (lgmrg, glgmrg)
+
+    def update_kernel_p(self, p, noise):
+        self.kernel.p = p
+        self.fit(self.y_obs, self.x_obs, noise)
+
 
 
