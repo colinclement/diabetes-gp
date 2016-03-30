@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.linalg as spl
 
+
 class GPR(object):
     """Perform a Gaussian Process Regression.
 
