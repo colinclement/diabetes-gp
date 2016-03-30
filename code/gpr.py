@@ -2,6 +2,25 @@ import numpy as np
 import scipy.linalg as spl
 
 class GPR(object):
+    """Perform a Gaussian Process Regression.
+
+    The implementation follows Algorithm 2.1 in Rasmussen & Williams (2006). It
+    uses Cholesky decomposition .
+
+    input:
+        kernel - a kernel object that can evaluate the covariance matrix
+                between two sets of vectors and the gradients of that
+                covariance matrix with respect to the hyperparameters, p, of
+                the kernel, see code/kernel.py.
+
+    methods:
+        fit - perform the fit.
+        transform - make predictions using that fit.
+        fit_transorm - convenience to fit and predict in one go.
+        logmarg - compute the log marginal likelihood of the fit.
+        grad_logmarg - compute the gradient of logmarg wrt hyperparameters, p.
+
+    """
     def __init__(self, kernel, **kwargs):
         self.kernel = kernel
 
@@ -27,15 +46,34 @@ class GPR(object):
         return self.transform(x_test)
 
     def logmarg(self, pnoise):
+        """Compute the log marginal likelihood of the fit.
+
+        See Eq. 5.8 in Rasmussen & Williams (2006).
+
+        input:
+            pnoise - array hyperparameters, whose last entry is the squared
+                    noise of the observations
+            
+        """
         self.update_kernel_p(pnoise[:-1], pnoise[-1])
 
         lgmg = self.y_obs.dot(self.alpha) + \
-                np.prod(self._L[0].diagonal())**2 +\
+                2*np.sum(np.log(self._L[0].diagonal())) +\
                 self.n*np.log(2*np.pi)
         
         return -0.5*lgmg
 
     def grad_logmarg(self, pnoise):
+        """Compute the gradient of the log marginal likelihood wrt
+        hyperparameters and the squared noise.
+
+        See Eq. 5.9 in Rasmussen & Williams (2006).
+
+        input:
+            pnoise - array hyperparameters, whose last entry is the squared
+                    noise of the observations
+
+        """
         self.update_kernel_p(pnoise[:-1], pnoise[-1])
 
         Kder = self.kernel.gradk(self.x_obs, self.x_obs)
