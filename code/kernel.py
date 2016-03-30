@@ -6,7 +6,7 @@ class Kernel(object):
     def __init__(self, p = []):
         self.p = np.array(p)
         if not len(p) == self.N_p:
-            raise(TypeError, "len(p) should be {}".format(self.N_p))
+            raise TypeError("len(p) should be {}".format(self.N_p))
         self.N_p = len(p)
 
     def __call__(self, x1, x2):
@@ -68,24 +68,24 @@ class LocalPeriodic(Kernel):
     def ev(x1, x2, p):
         def krn(xi, xj):
             d = xi-xj
-            return p[0]*(np.exp(-2*np.sin(0.5*d/p[1])/p[2]**2)*
-                         np.exp(-0.5*d.T.dot(d)/p[3]**2))
+            return p[0]*(np.exp(- 2*(np.sin(0.5*d/p[1])/p[2])**2
+                                - 0.5*d.T.dot(d)/p[3]**2))
         return cdist(x1[:,...,None], x2[:,...,None], krn)
 
     @staticmethod
     def evgrad(x1, x2, p):
         k = LocalPeriodic.ev(x1, x2, p)
-        evk = lambda d: p[0]*(np.exp(-2*np.sin(0.5*d/p[1])/p[2]**2)*
-                              np.exp(-0.5*d.T.dot(d)/p[3]**2))
+        evk = lambda d: p[0]*(np.exp(- 2*(np.sin(0.5*d/p[1])/p[2])**2
+                                     - 0.5*d.T.dot(d)/p[3]**2))
         def dkrn_d1(xi, xj):
             d = xi-xj
             k = evk(d)
-            return k*d*np.cos(d/(2*p[1]))/(p[1]*p[2])**2
+            return 2*k*d*np.cos(d/(2*p[1]))*np.sin(d/(2*p[1]))/(p[1]*p[2])**2
         dk1 = cdist(x1[:,...,None], x2[:,...,None], dkrn_d1) 
         def dkrn_d2(xi, xj):
             d = xi-xj
             k = evk(d)
-            return 4*k*np.sin(d/(2*p[1]))/p[2]**3
+            return 4*k*np.sin(d/(2*p[1]))**2/p[2]**3
         dk2 = cdist(x1[:,...,None], x2[:,...,None], dkrn_d2) 
         def dkrn_d3(xi, xj):
             d = xi-xj
