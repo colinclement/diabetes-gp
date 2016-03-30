@@ -10,7 +10,8 @@ def testKernelGrad(kernel, x1 = None, x2 = None, p = None, eps = 1E-7):
         p : parameters of kernel to evaluate derivatives at
         eps : step size of forward difference derivative
     return:
-        bool : True if gradients are correct else False
+        array of bools : True if gradients are correct else False,
+        kernelgrad, finite difference gradient
     """
     x1 = x1 if x1 is not None else 10*np.random.rand(10)
     x2 = x2 if x2 is not None else 10*np.random.rand(10)
@@ -25,5 +26,6 @@ def testKernelGrad(kernel, x1 = None, x2 = None, p = None, eps = 1E-7):
         p1[i] += eps
         dk += [(kernel.ev(x1, x2, p1)-k0)/eps]
     dk = np.dstack(dk)
-    return np.allclose(dk, mygrad)
+    testgrad = [np.allclose(dk[:,:,i], mygrad[:,:,i]) for i in range(kernel.N_p)]
+    return testgrad, mygrad, dk
 
