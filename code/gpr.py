@@ -85,9 +85,16 @@ class GPR(object):
 
         return 0.5*grd
 
-    def update_kernel_p(self, p, noise=None):
+    def log_gradmarg(self, pnoise, neg=True):
+        lgmrg = self.logmarg(pnoise)
+        glgmrg = self.grad_logmarg(pnoise)
+        if neg:
+            return (-lgmrg, -glgmrg)
+        else:
+            return (lgmrg, glgmrg)
+
+    def update_kernel_p(self, p, noise):
         self.kernel.p = p
-        noise = noise or self.noise
         self.fit(self.y_obs, self.x_obs, noise)
 
     def _invKproduct(self, x):
