@@ -4,16 +4,37 @@ from scipy.spatial.distance import cdist
 
 class Kernel(object):
     def __init__(self, p = []):
-        self.p = np.array(p)
+        self.updateposp(p)
         if not len(p) == self.N_p:
             raise TypeError("len(p) should be {}".format(self.N_p))
-        self.N_p = len(p)
 
     def __call__(self, x1, x2):
-        return self.ev(x1, x2, self.p) 
+        return self.ev(x1, x2, self.argp) 
 
     def gradk(self, x1, x2):
-        return self.evgrad(x1, x2, self.p)
+        return self.evgrad(x1, x2, self.argp)
+
+    @staticmethod
+    def getposp(p):
+        return np.log(1+np.exp(p))
+
+    @staticmethod
+    def getargp(posp):
+        return np.log(np.exp(posp)-1)
+
+    @property
+    def p(self):
+        return self.posp
+   
+    @property
+    def argp(self):
+        return Kernel.getargp(self.posp)
+
+    def updatep(self, p):
+        self.posp = Kernel.getposp(p.copy())
+    
+    def updateposp(self, posp):
+        self.posp = posp.copy()
 
     @staticmethod
     def ev(x1, x2, p):
@@ -22,7 +43,7 @@ class Kernel(object):
         input:
             x1, x2 - numpy arrays of shape (n1, d), (n2, d)
                      for data dimension d
-            p - numpy array of length N_p
+            p - numpy array of length N_p, with log(1+exp(parameters))
         returns:
             K(x1, x2) - (n1, n2)-shaped numpy array of covariances
         """
@@ -47,16 +68,19 @@ class SquareExponential(Kernel):
 
     @staticmethod
     def ev(x1, x2, p):
-        k = lambda xi, xj: p[0]*np.exp(-0.5*(xi-xj).T.dot(xi-xj)/p[1]**2)
+        v, l = Kernel.getposp(p)
+        k = lambda xi, xj: v*np.exp(-0.5*(xi-xj).T.dot(xi-xj)/l**2)
         return cdist(x1[:,...,None], x2[:,...,None], k)
 
     @staticmethod
     def evgrad(x1, x2, p):
-        ev = lambda xi, xj: p[0]*np.exp(-0.5*(xi-xj).T.dot(xi-xj)/p[1]**2)
-        evd1 = lambda x1, x2: ev(x1, x2)*(x1-x2).T.dot(x1-x2)/p[1]**3
+        v, l = Kernel.getposp(p)
+        dv, dl = 1./(1+np.exp(-p))
+        ev = lambda xi, xj: v*np.exp(-0.5*(xi-xj).T.dot(xi-xj)/l**2)
+        evd1 = lambda x1, x2: dl * ev(x1, x2)*(x1-x2).T.dot(x1-x2)/l**3
         k = cdist(x1[:,...,None], x2[:,...,None], ev)
         dk1 = cdist(x1[:,...,None], x2[:,...,None], evd1)
-        return np.dstack([k/p[0], dk1])
+        return np.dstack([dv/v * k, dk1])
                         
 
 class LocalPeriodic(Kernel):

@@ -13,12 +13,12 @@ def testKernelGrad(kernel, x1 = None, x2 = None, p = None, eps = 1E-7):
         array of bools : True if gradients are correct else False,
         kernelgrad, finite difference gradient
     """
-    x1 = x1 if x1 is not None else 10*np.random.rand(10)
-    x2 = x2 if x2 is not None else 10*np.random.rand(10)
+    x1 = x1 if x1 is not None else 5*np.random.rand(5)
+    x2 = x2 if x2 is not None else 5*np.random.rand(5)
     if p is not None:
-        kernel.p[:] = p.copy()
-    mygrad = kernel.gradk(x1, x2)
-    p0 = kernel.p.copy()
+        kernel.updateposp(p) 
+    p0 = kernel.argp.copy() 
+    mygrad = kernel.evgrad(x1, x2, p0) #This gradient taken at posp!
     k0 = kernel.ev(x1, x2, p0)
     dk = []
     for i in range(kernel.N_p):
